@@ -1,15 +1,24 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, Linking, Pressable, TouchableOpacity, Image,TextInput, Alert, LogBox} from 'react-native';
+import { StyleSheet, Text, View, Linking, Pressable, TouchableOpacity, SafeAreaView,
+  ScrollView, Image, TextInput, Alert, LogBox, FlatList} from 'react-native';
 import React, { useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+
+import AppLoading from 'expo-app-loading';
+import { useFonts, Lobster_400Regular } from '@expo-google-fonts/lobster';
+
 import {Picker} from '@react-native-picker/picker';
 // Picker for the payment screen needed to run the following in cmd: npm install @react-native-picker/picker --save
-
+import data from './menuItems.json';
 LogBox.ignoreLogs(['Non-serializable values were found in the navigation state',]);
+
+import * as SQLite from "expo-sqlite";
 import * as SplashScreen from 'expo-splash-screen';
 SplashScreen.preventAutoHideAsync();
 setTimeout(SplashScreen.hideAsync, 2000);
+
+const db = SQLite.openDatabase("kitchen.db");
 
 function Welcome({ navigation }) {
   const phoneNumber = '(402)555-5555'
@@ -22,7 +31,7 @@ function Welcome({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Text>Welcome to Coffeffe Coffee House! Where coffee drinkers drink coffee.</Text>
       <Text style={styles.welcomeHeader}>Location:</Text>
       <Text style={styles.wellcomeInfo}>444 O Street Eagle, Ne. 68347</Text>
@@ -52,7 +61,7 @@ function Welcome({ navigation }) {
       </View>
 
       <StatusBar style="auto" />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -74,96 +83,33 @@ existing array of orders using the spread operator. */}
       Alert.alert('Sounds Good', `${item.name} has been added to your order`);
     }
   };
-  // first define a menuItems constant that is an array of objects representing each drink
-  //  and its price. We then use the map function to iterate over this array and display 
-  //  each drink's name and price. 
-  const menuItems = [
-    {
-      id: 1,
-      name: "Espresso",
-      price: 2.5
-    },
-    {
-      id: 2,
-      name: "Americano",
-      price: 3.0
-    },
-    {
-      id: 3,
-      name: "Latte",
-      price: 4.0
-    },
-    {
-      id: 4,
-      name: "Cappuccino",
-      price: 3.5
-    },
-    {
-      id: 5,
-      name: "Regular Coffee",
-      price: 1.5
-    },
-    {
-      id: 6,
-      name: "Decaf Coffee",
-      price: 1.5
-    },
-    {
-      id: 7,
-      name: "Macchiatto",
-      price: 4.75
-    },
-    {
-      id: 8,
-      name: "Flat White",
-      price: 4.5
-    },
-    {
-      id: 9,
-      name: "Irish Coffee",
-      price: 5.25
-    },
-    {
-      id: 10,
-      name: "Red Eye",
-      price: 3.75
-    },
-    {
-      id: 11,
-      name: "Cafe au Lait",
-      price: 5.5
-    }
-  ];
 
 // Determine whether the "View Order" button should be disabled
 const isOrderEmpty = order.length === 0;
-
 return (
-  <View style={styles.container}>
+  <SafeAreaView style={styles.container}>
     <TextInput style={styles.textInput}
       placeholder="Enter Your Name To Start Your Order"
       onChangeText={newName => setName(newName)}
       defaultValue={name}
     />
 
-    {menuItems.map((item, index) => {
-      return (
-        <View key={index}>
-          <View style={styles.menuItem}>
+        <View>
+        <FlatList 
+          data={data}
+          renderItem={({ item }) => (
+            <View style={styles.menuItem}>
             <Text style={styles.itemName}>{item.name}</Text>
             <Text style={styles.itemPrice}>${item.price.toFixed(2)}</Text>
-{/* this button calls the addToOrder function with the corresponding drink object as an argument. */}         
             <Pressable style={styles.menuButton} onPress={() => addToOrder(item)}>
-              <Text style={styles.buttonText}>Add to Order</Text>
-              <View style={styles.separator} />
+              <Text style={styles.buttonText}>Add to Order</Text>              
             </Pressable>
-          </View>
- {/* Had to code it this way to see the seperator between menu items */} 
-          <View style={styles.separator} />
+            </View>
+            )}
+        />
+        <View style={styles.separator} />
         </View>
-      )
-    })}
-
+        
     {/* Disable the "View Order" button if the order is empty */}
     {/* pass the order state as a parameter to the ConfirmOrder screen along with the name state
     and setOrder, this will be needed to remove an unwanted item from the order. */}
@@ -175,10 +121,9 @@ return (
         <Text style={styles.buttonText}>Checkout</Text>
       </Pressable>
     </View>
-  </View>
+  </SafeAreaView>
 );
 }
-
 
 function ConfirmOrder({route, navigation}){
   // in this case 'name' refers to the name that was entered in the text box on the
@@ -191,6 +136,19 @@ function ConfirmOrder({route, navigation}){
   let salesTax = subtotal * salesTaxRate;
   let totalDue = subtotal + salesTax;
 
+  
+  // // this is where you'll create the table
+  //   db.transaction((tx) => {
+  //     tx.executeSql(
+  //        "drop table kitchen;"
+  //     );
+  //     tx.executeSql(
+  //       "create table if not exists kitchen (id integer primary key not null, drinks text, orderTotal num);"
+  //     );
+  //   },
+  //   (error) => {console.log("error: "+ error)});
+    
+  
 
   // removeItem that takes the unique identifier of the item to be removed as a parameter, 
   // and updates the order state to remove that item.
@@ -203,7 +161,7 @@ function ConfirmOrder({route, navigation}){
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Text>Nice {name}! Does your order look correct?</Text>
       <Text style={styles.itemName}>Order Summary:</Text>
       <Text></Text>
@@ -242,29 +200,44 @@ function ConfirmOrder({route, navigation}){
         </Pressable>
         <Pressable
           style={styles.rightButton}
-          onPress={() => navigation.navigate('Payment')}>
+          onPress={() => navigation.navigate('Payment',{ subtotal ,salesTax, totalDue, order})}>
           <Text style={styles.buttonText}>Checkout</Text>
         </Pressable>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
 
-function Payment({navigation}){
+function Payment({route, navigation}){
   const [selectedValue, setSelectedValue] = useState("visa");
   const [nameOnCard, setNameOnCard] = useState('');
   const [expirationDate, setExpirationDate] = useState('');
   const [cvv2, setCvv2] = useState('');
   const [cardNumber, setCardNumber] = useState('');
-
+  const { subtotal, salesTax, totalDue, order } = route.params;
   // the isButtonDisabled variable is used to determine whether the button should be disabled or not. 
   // The variable is set to true if any of the required fields are empty or if the card number 
   // has not yet had all 16 digits entered.
   const isButtonDisabled = !(nameOnCard && expirationDate && cvv2 && cardNumber.length === 16);
 
+  
+
+ // this is where you'll create the table, once working commented the "drop table" out
+    // db.transaction((tx) => {
+    //   tx.executeSql(
+    //    "drop table kitchen;"
+    //   );
+    //   })
+
+    db.transaction((tx) => {
+      tx.executeSql(
+        "create table if not exists kitchen (id integer primary key not null, customerName text, drinks text, orderTotal num)",[]
+      );
+      })
+
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <Text>Please Select Your Card Type:</Text>
       <View style={styles.dropdownContainer}>
         <Picker
@@ -306,18 +279,53 @@ function Payment({navigation}){
         defaultValue={cardNumber}
       />
 
+      <View style={styles.separator}></View>
+            <Text></Text>
+
+            <View>
+              <Text style={styles.subtotalText}>Subtotal:</Text>
+              <Text style={styles.subtotalPrice}>${subtotal.toFixed(2)}</Text>
+            
+              <Text style={styles.salesTaxText}>Sales Tax:</Text>
+              <Text style={styles.salesTaxPrice}>${salesTax.toFixed(2)}</Text>
+
+              <Text style={styles.totalDueText}>Total Due:</Text>
+              <Text style={styles.totalDuePrice}>${totalDue.toFixed(2)}</Text>
+            </View>
+
 {/* The disabled prop of the Pressable component is set to isButtonDisabled, 
-and the styles.disabledButton style is applied to the button if it is disabled. */}
+and the styles.disabledButton style is applied to the button if it is disabled.
+When the button is pressed you will be able to see all the entries in the console.log */}
+
+ {/* had to get the order.map first and then grab just the item.name
+ then use the Javascript "join" to create a list if the items ordered delinated by a comma(,) */}
       <View style={styles.buttonContainer}>
         <Pressable
           style={[styles.button, isButtonDisabled && styles.disabledButton]}
           disabled={isButtonDisabled}
-          onPress={() => navigation.navigate('Home')}
+          onPress={() => {  
+            db.transaction((tx) => {
+              tx.executeSql(
+                "insert into kitchen (customerName, drinks, orderTotal) values (?, ?, ?)",
+                [nameOnCard, order.map((item) => item.name).join(', '), totalDue.toFixed(2)]
+              );
+            }) 
+            
+
+            db.transaction((tx) => {
+            tx.executeSql(
+              "select * from kitchen", [], 
+              (tx, result) => {
+              console.log(result.rows)}
+            )});
+            navigation.navigate("Home");
+            }
+          }
         >
           <Text style={styles.buttonText}>place Order</Text>
         </Pressable>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -406,7 +414,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginHorizontal: 10,
-    marginVertical: 5,
+    marginVertical: 8,
   },
   itemName: {
     fontSize: 16,
